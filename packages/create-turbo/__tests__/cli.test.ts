@@ -154,6 +154,77 @@ describe("create-turbo cli", () => {
     });
   });
 
+  describe("with installation", () => {
+    it("default", async () => {
+      const cli = spawn("node", [createTurbo], {});
+
+      const messages = await runInteractiveCLI(cli);
+
+      expect(messages[0]).toEqual(
+        ">>> Welcome to Turborepo! Let's get you set up with a new codebase."
+      );
+
+      expect(messages[1]).toEqual(
+        `? Where would you like to create your turborepo? (./${DEFAULT_APP_NAME})`
+      );
+
+      expect(getPromptChoices(messages[2])).toEqual(["npm", "pnpm", "yarn"]);
+
+      expect(messages[3]).toMatch(
+        /^>>> Creating a new turborepo with the following:/
+      );
+
+      expect(
+        messages.find((msg) =>
+          msg.match(
+            new RegExp(
+              `>>> Success! Created a new Turborepo at "${DEFAULT_APP_NAME}"`
+            )
+          )
+        )
+      ).toBeTruthy();
+
+      expect(getGeneratedPackageJSON().packageManager).toMatch(/^npm/);
+
+      expect(fs.existsSync(path.join(testDir, "node_modules"))).toBe(true);
+    }, 50000);
+
+    PACKAGE_MANAGERS.forEach((packageManager) => {
+      it(`--use-${packageManager}`, async () => {
+        const cli = spawn("node", [createTurbo, `--use-${packageManager}`], {});
+        const messages = await runInteractiveCLI(cli);
+
+        expect(messages[0]).toEqual(
+          ">>> Welcome to Turborepo! Let's get you set up with a new codebase."
+        );
+
+        expect(messages[1]).toEqual(
+          `? Where would you like to create your turborepo? (./${DEFAULT_APP_NAME})`
+        );
+
+        expect(messages[2]).toMatch(
+          /^>>> Creating a new turborepo with the following:/
+        );
+
+        expect(
+          messages.find((msg) =>
+            msg.match(
+              new RegExp(
+                `>>> Success! Created a new Turborepo at "${DEFAULT_APP_NAME}"`
+              )
+            )
+          )
+        ).toBeTruthy();
+
+        expect(getGeneratedPackageJSON().packageManager).toMatch(
+          new RegExp(`^${packageManager}`)
+        );
+
+        expect(fs.existsSync(path.join(testDir, "node_modules"))).toBe(true);
+      }, 50000);
+    });
+  });
+
   describe("printing version", () => {
     it("--version flag works", async () => {
       let { stdout } = await execFile("node", [createTurbo, "--version"]);
